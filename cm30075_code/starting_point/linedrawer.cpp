@@ -17,48 +17,79 @@
 
 int draw_x_line(FrameBuffer *fb, int sx, int sy, int ex, int ey)
 {
-  int dir = 1;
-  if (sx > ex)
+  int xdir = 1;
+  int ydir = 1;
+
+  if(sy > ey)
   {
-    dir = -1;
+    ydir = -1;
   }
 
-  int   x     = sx;
-  float y     = (float)sy;
-  float slope = ((float)ey-(float)sy)/((float)ex-(float)sx);
-        slope = slope * dir;
+  if (sx > ex)
+  {
+    xdir = -1;
+  }
+
+  int wy = sy ; 
+  int x = sx ; 
+
+  int dx = (ex-sx) * xdir ;
+  int dy = (ey-sy) * ydir ;
+
+  int fy = dy/2;
   
   while (x != ex)
   {
-    fb->plotPixel(x, (int)y, 1.0f, 1.0f, 1.0f);
+    fb->plotPixel(x, wy, 1.0f, 1.0f, 1.0f);
 
-    y += slope;
+    x += xdir;
 
-    x += dir;
+    fy += dy;
+
+    if (fy>=dx)
+    {
+      wy += ydir;
+      fy -= dx;
+    }
   }
 
 }
 
 int draw_y_line(FrameBuffer *fb, int sx, int sy, int ex, int ey)
 {
-  int dir = 1;
-  if (sy > ey)
+  int xdir = 1;
+  int ydir = 1;
+
+  if(sy > ey)
   {
-    dir = -1;
+    ydir = -1;
   }
 
-  int   y     = sy;
-  float x     = (float)sx;
-  float slope = ((float)ex-(float)sx)/((float)ey-(float)sy);
-        slope = slope * dir;
+  if (sx > ex)
+  {
+    xdir = -1;
+  }
+
+  int y = sy ; 
+  int wx = sx ; 
+
+  int dx = (ex-sx) * xdir ;
+  int dy = (ey-sy) * ydir ;
+
+  int fx = dx/2;
   
   while (y != ey)
   {
-    fb->plotPixel((int)x, y, 1.0f, 1.0f, 1.0f);
+    fb->plotPixel(wx, y, 1.0f, 1.0f, 1.0f);
+    y+=ydir;
 
-    x += slope;
+    fx += dx ;
 
-    y += dir;
+    if (fx>=dy)
+    {
+      wx += xdir;
+      fx -= dy;
+    }
   }
 
 }
