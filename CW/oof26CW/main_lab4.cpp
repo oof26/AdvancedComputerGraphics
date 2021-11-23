@@ -75,6 +75,7 @@ void object_test(Ray ray, Object *objects, Hit &best_hit)
 Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflectionDepth)
 {
   Colour colour;
+  std::cout<< reflectionDepth << "\n";
   if(reflectionDepth<=0){
     return colour;
   }
