@@ -158,7 +158,7 @@ Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflec
       reflection_ray.position.y = best_hit.position.y + (0.0001f * reflection_ray.direction.y);
       reflection_ray.position.z = best_hit.position.z + (0.0001f * reflection_ray.direction.z);	
      
-      Colour reflectionColour = raytrace(ray, objects, lights, depth, reflectionDepth-1);
+      Colour reflectionColour = raytrace(reflection_ray, objects, lights, depth, reflectionDepth-1);
       colour.r += reflectionColour.r * best_hit.what->material->reflection.r;
       colour.g += reflectionColour.g * best_hit.what->material->reflection.g;
       colour.b += reflectionColour.b * best_hit.what->material->reflection.b;
