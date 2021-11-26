@@ -19,6 +19,7 @@ class Ray {
 public:
 	Vertex position;
 	Vector direction;
+	bool inObject;
 
 	Ray()
 	{

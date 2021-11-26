@@ -15,7 +15,9 @@
 class Material {
 public:
 
-	Colour reflection;
+	float reflection;
+	float refraction;
+	float refractionIndex;
 
 	virtual void compute_base_colour(Colour &result)
 	{

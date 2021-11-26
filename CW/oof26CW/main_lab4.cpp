@@ -75,8 +75,10 @@ void object_test(Ray ray, Object *objects, Hit &best_hit)
 Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflectionDepth)
 {
   Colour colour;
-  std::cout<< reflectionDepth << "\n";
   if(reflectionDepth<=0){
+    colour.r = 0.0f;
+    colour.g = 0.0f;
+    colour.b = 0.0f;
     return colour;
   }
   // first step, find the closest primitive
@@ -150,24 +152,67 @@ Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflec
       light = light->next;
     }
 
-    // TODO: compute reflection ray if material supports it.
-    if(1) //do reflection for all materials at the moment, can change in future
-    {
-      Ray reflection_ray; 
-      ray.direction.reflection(best_hit.normal, reflection_ray.direction);
-      reflection_ray.position.x = best_hit.position.x + (0.0001f * reflection_ray.direction.x);
-      reflection_ray.position.y = best_hit.position.y + (0.0001f * reflection_ray.direction.y);
-      reflection_ray.position.z = best_hit.position.z + (0.0001f * reflection_ray.direction.z);	
-     
-      Colour reflectionColour = raytrace(reflection_ray, objects, lights, depth, reflectionDepth-1);
-      colour.r += reflectionColour.r * best_hit.what->material->reflection.r;
-      colour.g += reflectionColour.g * best_hit.what->material->reflection.g;
-      colour.b += reflectionColour.b * best_hit.what->material->reflection.b;
+    if(best_hit.what->material->refractionIndex > 0.0f){ //Calculate refraction
+      Ray refraction_ray;
+      float refractionIndex;
+
+      if(ray.inObject){
+        refractionIndex = 1 / best_hit.what->material->refractionIndex;
+      }
+      else
+      {
+        refractionIndex = best_hit.what->material->refractionIndex / 1;
+      }
+
+      double cosI = best_hit.normal.dot(ray.direction);
+      double cosT = sqrt(1-(1/pow(refractionIndex,2))*(1-pow(cosI,2)));
+
+      if(pow(cosT,2)>0.0f){
+
+        //calculate refraction ray direction
+        refraction_ray.direction.x = 1/refractionIndex * ray.direction.x - (cosT - (1/refractionIndex)*cosI) * best_hit.normal.x; 
+        refraction_ray.direction.y = 1/refractionIndex * ray.direction.y - (cosT - (1/refractionIndex)*cosI) * best_hit.normal.y; 
+        refraction_ray.direction.z = 1/refractionIndex * ray.direction.z - (cosT - (1/refractionIndex)*cosI) * best_hit.normal.z; 
+
+        //calculate refraction hits
+        refraction_ray.position.x = best_hit.position.x + (0.0001f * refraction_ray.direction.x);
+        refraction_ray.position.y = best_hit.position.y + (0.0001f * refraction_ray.direction.y);
+        refraction_ray.position.z = best_hit.position.z + (0.0001f * refraction_ray.direction.z);
+        refraction_ray.inObject = !ray.inObject;
+
+        //calculate Fresno values
+        double rpar = ((refractionIndex*fabsf(cosI))- fabsf(cosT)) / ((refractionIndex*fabsf(cosI)) + fabsf(cosT));
+        double rper = (fabsf(cosI) - (refractionIndex*fabsf(cosT))) / (fabsf(cosI) - (refractionIndex*fabsf(cosT)));
+
+        double kr = 0.5 * (pow(rpar,2) + pow(rper,2));
+        double kt = 1-kr;
+
+        best_hit.what->material->reflection = kr;
+        best_hit.what->material->refraction = kt; 
+
+        Colour refractionColour = raytrace(refraction_ray, objects, lights, depth, reflectionDepth-1);
+        colour.r += refractionColour.r * best_hit.what->material->refraction;
+        colour.g += refractionColour.g * best_hit.what->material->refraction;
+        colour.b += refractionColour.b * best_hit.what->material->refraction;
+      }
+      else
+      {
+        best_hit.what->material->reflection = 1;
+      }
     }
 
-    // TODO: compute refraction ray if material supports it.
-    if(1)
+    if(best_hit.what->material->reflection > 0.0 ) //Calculate reflection
     {
+      Ray reflection_ray; 
+      best_hit.normal.reflection(ray.direction, reflection_ray.direction);
+      reflection_ray.position.x = best_hit.position.x + (0.005f * reflection_ray.direction.x);
+      reflection_ray.position.y = best_hit.position.y + (0.005f * reflection_ray.direction.y);
+      reflection_ray.position.z = best_hit.position.z + (0.005f * reflection_ray.direction.z);	
+     
+      Colour reflectionColour = raytrace(reflection_ray, objects, lights, depth, reflectionDepth-1);
+      colour.r += reflectionColour.r * best_hit.what->material->reflection;
+      colour.g += reflectionColour.g * best_hit.what->material->reflection;
+      colour.b += reflectionColour.b * best_hit.what->material->reflection;
     }
 
     return colour;
@@ -184,8 +229,8 @@ Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflec
 
 int main(int argc, char *argv[])
 {
-  int width = 512;
-  int height = 512;
+  int width = 1024;
+  int height = 1024;
   // Create a framebuffer
   FrameBuffer *fb = new FrameBuffer(width,height);
 
@@ -207,8 +252,8 @@ int main(int argc, char *argv[])
 
   Vertex v2;
   v2.x = -1.0f;
-  v2.y = 1.0f;
-  v2.z = 3.0f;
+  v2.y = 0.0f;
+  v2.z = 2.0f;
   
   Sphere *sphere2 = new Sphere(v2,0.5f);
 
@@ -230,33 +275,31 @@ int main(int argc, char *argv[])
 	bp1.diffuse.r = 0.4f;
 	bp1.diffuse.g = 0.0f;
 	bp1.diffuse.b = 0.0f;
-	bp1.specular.r = 0.4f;
-	bp1.specular.g = 0.4f;
-	bp1.specular.b = 0.4f;
+	bp1.specular.r = 0.2f;
+	bp1.specular.g = 0.2f;
+	bp1.specular.b = 0.2f;
 	bp1.power = 40.0f;
-  bp1.reflection.r = 0.4f;
-  bp1.reflection.g = 0.4f;
-  bp1.reflection.b = 0.4f;
 
 	pm->material = &bp1;
+  pm->material->reflection=0.4f;
+  pm->material->refraction=0.0f;
+  pm->material->refractionIndex=0.0f;
 
   Phong bp2;
 
   bp2.ambient.r = 0.0f;
-	bp2.ambient.g = 0.2f;
+	bp2.ambient.g = 0.1f;
 	bp2.ambient.b = 0.0f;
 	bp2.diffuse.r = 0.0f;
-	bp2.diffuse.g = 0.4f;
+	bp2.diffuse.g = 0.1f;
 	bp2.diffuse.b = 0.0f;
-	bp2.specular.r = 0.4f;
-	bp2.specular.g = 0.4f;
-	bp2.specular.b = 0.4f;
+	bp2.specular.r = 0.2f;
+	bp2.specular.g = 0.2f;
+	bp2.specular.b = 0.2f;
 	bp2.power = 40.0f;
-  bp2.reflection.r = 0.4f;
-  bp2.reflection.g = 0.4f;
-  bp2.reflection.b = 0.4f;
 
 	sphere->material = &bp2;
+  sphere->material->refractionIndex=1.52f;
 
  	sphere2->material = &bp2;
 
@@ -276,6 +319,7 @@ int main(int argc, char *argv[])
       ray.direction.y = (0.5f-fy);
       ray.direction.z = 0.5f;
       ray.direction.normalise();
+      ray.inObject = false; 
 
       Colour colour;
       float depth;

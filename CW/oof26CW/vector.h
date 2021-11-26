@@ -71,6 +71,10 @@ public:
 		reflect.z = initial.z - d * z;
 	}
 
+	void refraction(Vector initial, float refractionIndex, Vector &refract){
+		
+	}
+
 	void negate()
 	{
 		x = -x;
