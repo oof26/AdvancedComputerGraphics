@@ -19,7 +19,6 @@ public:
 	Colour ambient;
 	Colour diffuse;
 	Colour specular;
-	Colour reflection;
 	
 	float  power;
 

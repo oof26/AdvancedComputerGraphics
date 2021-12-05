@@ -36,6 +36,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <math.h>
 
 using namespace std;
 
@@ -161,18 +162,18 @@ Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflec
       }
       else
       {
-        refractionIndex = best_hit.what->material->refractionIndex / 1;
+        refractionIndex = best_hit.what->material->refractionIndex;
       }
 
       double cosI = best_hit.normal.dot(ray.direction);
       double cosT = sqrt(1-(1/pow(refractionIndex,2))*(1-pow(cosI,2)));
 
-      if(pow(cosT,2)>0.0f){
+      if(pow(cosT,2)>=0.0f){
 
         //calculate refraction ray direction
-        refraction_ray.direction.x = 1/refractionIndex * ray.direction.x - (cosT - (1/refractionIndex)*cosI) * best_hit.normal.x; 
-        refraction_ray.direction.y = 1/refractionIndex * ray.direction.y - (cosT - (1/refractionIndex)*cosI) * best_hit.normal.y; 
-        refraction_ray.direction.z = 1/refractionIndex * ray.direction.z - (cosT - (1/refractionIndex)*cosI) * best_hit.normal.z; 
+        refraction_ray.direction.x = ((1/refractionIndex) * ray.direction.x) - ((cosT - (1/refractionIndex)*cosI) * best_hit.normal.x); 
+        refraction_ray.direction.y = ((1/refractionIndex) * ray.direction.y) - ((cosT - (1/refractionIndex)*cosI) * best_hit.normal.y); 
+        refraction_ray.direction.z = ((1/refractionIndex) * ray.direction.z) - ((cosT - (1/refractionIndex)*cosI) * best_hit.normal.z); 
 
         //calculate refraction hits
         refraction_ray.position.x = best_hit.position.x + (0.0001f * refraction_ray.direction.x);
@@ -180,9 +181,11 @@ Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflec
         refraction_ray.position.z = best_hit.position.z + (0.0001f * refraction_ray.direction.z);
         refraction_ray.inObject = !ray.inObject;
 
+        Colour refractionColour = raytrace(refraction_ray, objects, lights, depth, reflectionDepth-1);
+
         //calculate Fresno values
-        double rpar = ((refractionIndex*fabsf(cosI))- fabsf(cosT)) / ((refractionIndex*fabsf(cosI)) + fabsf(cosT));
-        double rper = (fabsf(cosI) - (refractionIndex*fabsf(cosT))) / (fabsf(cosI) - (refractionIndex*fabsf(cosT)));
+        double rpar = ((refractionIndex*fabsf(cosI))- cosT) / ((refractionIndex*fabsf(cosI)) + cosT);
+        double rper = (fabsf(cosI) - (refractionIndex*cosT)) / (fabsf(cosI) - (refractionIndex*cosT));
 
         double kr = 0.5 * (pow(rpar,2) + pow(rper,2));
         double kt = 1-kr;
@@ -190,7 +193,6 @@ Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflec
         best_hit.what->material->reflection = kr;
         best_hit.what->material->refraction = kt; 
 
-        Colour refractionColour = raytrace(refraction_ray, objects, lights, depth, reflectionDepth-1);
         colour.r += refractionColour.r * best_hit.what->material->refraction;
         colour.g += refractionColour.g * best_hit.what->material->refraction;
         colour.b += refractionColour.b * best_hit.what->material->refraction;
@@ -229,8 +231,9 @@ Colour raytrace(Ray ray, Object *objects, Light *lights, float depth, int reflec
 
 int main(int argc, char *argv[])
 {
-  int width = 1024;
-  int height = 1024;
+  int width = 512;
+  int height = 512;
+  bool depthofField = true;
   // Create a framebuffer
   FrameBuffer *fb = new FrameBuffer(width,height);
 
@@ -244,16 +247,16 @@ int main(int argc, char *argv[])
   PolyMesh *pm = new PolyMesh((char *)"teapot_smaller.ply", transform);
 
   Vertex v;
-  v.x = 0.0f;
-  v.y = 0.0f;
-  v.z = 5.0f;
+  v.x = -3.0f;
+  v.y = 1.0f;
+  v.z = 10.0f;
   
   Sphere *sphere = new Sphere(v, 1.0f);
 
   Vertex v2;
-  v2.x = -1.0f;
-  v2.y = 0.0f;
-  v2.z = 2.0f;
+  v2.x = 3.0f;
+  v2.y = 1.0f;
+  v2.z = 5.0f;
   
   Sphere *sphere2 = new Sphere(v2,0.5f);
 
@@ -279,11 +282,11 @@ int main(int argc, char *argv[])
 	bp1.specular.g = 0.2f;
 	bp1.specular.b = 0.2f;
 	bp1.power = 40.0f;
+  bp1.reflection = 0.4f;
+  bp1.refraction = 0.0f;
+  bp1.refractionIndex = 0.0f;
 
 	pm->material = &bp1;
-  pm->material->reflection=0.4f;
-  pm->material->refraction=0.0f;
-  pm->material->refractionIndex=0.0f;
 
   Phong bp2;
 
@@ -293,18 +296,17 @@ int main(int argc, char *argv[])
 	bp2.diffuse.r = 0.0f;
 	bp2.diffuse.g = 0.1f;
 	bp2.diffuse.b = 0.0f;
-	bp2.specular.r = 0.2f;
-	bp2.specular.g = 0.2f;
-	bp2.specular.b = 0.2f;
+	bp2.specular.r = 0.1f;
+	bp2.specular.g = 0.1f;
+	bp2.specular.b = 0.1f;
 	bp2.power = 40.0f;
+  bp2.refractionIndex=1.52f;
 
 	sphere->material = &bp2;
-  sphere->material->refractionIndex=1.52f;
-
  	sphere2->material = &bp2;
 
-	pm->next = sphere2;
-
+	pm->next = sphere;
+  sphere->next = sphere2;
  
   for (int y = 0; y < height; y += 1)
   {
@@ -321,14 +323,52 @@ int main(int argc, char *argv[])
       ray.direction.normalise();
       ray.inObject = false; 
 
+      if(depthofField)
+      {
+        //calculating focal point
+        float focalLength = 5;
+        //using focal length to calculate point on focal plane
+        float t = sqrt((focalLength*focalLength)/((ray.direction.x*ray.direction.x) + (ray.direction.y*ray.direction.y) + (0.5*0.5)));
+        Vertex focalPoint;
+        focalPoint.x = ray.direction.x*t;
+        focalPoint.y = ray.direction.y*t;
+        focalPoint.z = ray.direction.z*t;
+
+        float aperture = 20.0f;
+        Colour colour;
+        Colour sampledColour;
+        float depth;
+        for( int x = 0; x<=15; x++){
+          //generating a random point on our aperture (circle)
+          float angle = (rand() / RAND_MAX) * 2.0f * M_PI;
+          float radius = rand() / RAND_MAX;
+          float offsetX = cos(angle) * radius * aperture;
+          float offsetY =  sin(angle) * radius * aperture;
+
+          //calculating new focalRay 
+          Ray focalRay;
+          focalRay.position = ray.position; //might need to change this
+          focalRay.direction.x = focalPoint.x - offsetX;
+          focalRay.direction.y = focalPoint.y - offsetX;
+          focalRay.direction.z = 0.5f;
+          focalRay.direction.normalise();
+          focalRay.inObject = false;
+
+          sampledColour = raytrace(focalRay, pm, dl, depth, 5);
+          colour.r += sampledColour.r;
+          colour.g += sampledColour.g;
+          colour.b += sampledColour.b;
+        }
+        fb->plotPixel(x, y, colour.r/16, colour.g/16, colour.b/16);
+      }
+      else
+      {
       Colour colour;
       float depth;
-      int reflectionDepth = 3;
-
-      colour = raytrace(ray, pm, dl, depth, reflectionDepth);
-
+      colour = raytrace(ray, pm, dl, depth, 3);
       fb->plotPixel(x, y, colour.r, colour.g, colour.b);
       fb->plotDepth(x,y, depth);
+      }
     }
 
     cerr << "*" << flush;
