@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
         focalPoint.y = ray.direction.y*t;
         focalPoint.z = ray.direction.z*t;
 
-        float aperture = 20.0f;
+        float aperture = 5.0f;
         Colour colour;
         Colour sampledColour;
         float depth;
