@@ -24,5 +24,7 @@ public:
 
 	void compute_base_colour(Colour &result);
 
-	void compute_light_colour(Vector &viewer, Vector &normal, Vector &ldir, Colour &result);
+	void compute_specular_light(Vector &viewer, Vector &normal, Vector &ldir, Colour &result);
+	void compute_diffuse_light(Vector &viewer, Vector &normal, Vector &ldir, Colour &result);
+
 };

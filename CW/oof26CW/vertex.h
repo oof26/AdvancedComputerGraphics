@@ -9,10 +9,10 @@
 
 class Vertex {
 public:
-	float x;
-	float y;
-	float z;
-	float w;
+	double x;
+	double y;
+	double z;
+	double w;
 
 	Vertex()
 	{
