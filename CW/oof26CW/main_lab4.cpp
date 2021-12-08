@@ -530,7 +530,9 @@ int main(int argc, char *argv[])
 
           //calculating new focalRay 
           Ray focalRay;
-          focalRay.position = ray.position; //might need to change this
+          focalRay.position.x = ray.position.x + offsetX; //might need to change this
+          focalRay.position.y = ray.position.y + offsetY; //might need to change this
+          focalRay.position.z = ray.position.z;
           focalRay.direction.x = focalPoint.x - offsetX;
           focalRay.direction.y = focalPoint.y - offsetX;
           focalRay.direction.z = focalPoint.z;
